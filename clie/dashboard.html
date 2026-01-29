@@ -18,7 +18,8 @@
     <nav class="navbar">
         <a href="index.html" class="logo">Opportunity<span>Hub</span></a>
         <div class="nav-links">
-             <a href="post.html" class="btn-login" style="border:none;">+ Post Job</a> <a href="index.html" class="btn-login" style="border:none;">Browse All Jobs</a>
+             <a href="post.html" class="btn-login" style="border:none;">+ Post Job</a> 
+             <a href="index.html" class="btn-login" style="border:none;">Browse All Jobs</a>
             <button onclick="logout()" class="btn-login" style="cursor:pointer; color:red; border-color:red;">Logout</button>
         </div>
     </nav>
@@ -53,24 +54,22 @@
 
         <h2>⚡ Recommended For You</h2>
         <p style="color:#666; margin-bottom:20px;">Based on your skills</p>
-
-        <div style="margin-top: 50px; border-top: 1px solid #ddd; paddingTop: 30px;">
-        <h2>📂 Manage My Posts</h2>
-        <p style="color:#666;">Jobs you have posted. Click delete to remove them.</p>
-    
-    <div id="my-posts-grid" class="grid">
-        <p>Loading your posts...</p>
-    </div>
-</div>
-        
         <div id="rec-grid" class="grid">
             <p>Loading recommendations...</p>
+        </div>
+
+        <div style="margin-top: 50px; border-top: 1px solid #ddd; paddingTop: 30px;">
+            <h2>📂 Manage My Posts</h2>
+            <p style="color:#666;">Jobs you have posted. Click delete to remove them.</p>
+            <div id="my-posts-grid" class="grid">
+                <p>Loading your posts...</p>
+            </div>
         </div>
 
     </div>
 
     <script>
-        // 1. Check Login & Load User Data
+        // --- 1. INITIALIZATION ---
         const user = JSON.parse(localStorage.getItem('user'));
 
         if (!user) {
@@ -81,18 +80,17 @@
             document.getElementById('user-name').innerText = `Welcome back, ${user.name}!`;
             document.getElementById('user-email').innerText = user.email;
             
-            // Handle Skills (Convert string to array if needed)
-            // If user has no skills, use a default for demo
             const userSkillsString = user.skills || "React, Node"; 
             document.getElementById('user-skills').innerText = userSkillsString;
             
-            // Convert "React, Node" -> ["React", "Node"] for matching
             const userSkillsArray = userSkillsString.split(',').map(s => s.trim());
 
-            // 2. Load Recommended Jobs
+            // Load Data
             loadRecommendations(userSkillsArray);
+            loadMyPosts(); // <--- Called separately now
         }
 
+        // --- 2. LOAD RECOMMENDATIONS ---
         async function loadRecommendations(mySkills) {
             try {
                 const res = await fetch('http://localhost:5000/api/opportunities');
@@ -108,7 +106,6 @@
                     const intersection = eventSkills.filter(s => mySkills.some(ms => ms.toLowerCase() === s.toLowerCase()));
                     const matchScore = Math.round((intersection.length / eventSkills.length) * 100);
 
-                    // Only show if match score > 0 (or show all sorted by match)
                     if (matchScore > 0) {
                         matchCount++;
                         const card = `
@@ -125,71 +122,7 @@
                         grid.innerHTML += card;
                     }
                 });
-                // Add this inside the <script> tag in dashboard.html
 
-             // 3. Load "My Posted Jobs"
-            async function loadMyPosts() {
-              try {
-                 const email = user.email; // Get logged in user's email
-                 const res = await fetch(`http://localhost:5000/api/my-posts/${email}`);
-                 const myPosts = await res.json();
-        
-                 const grid = document.getElementById('my-posts-grid');
-                 grid.innerHTML = '';
-
-                 if (myPosts.length === 0) {
-                    grid.innerHTML = '<p>You haven\'t posted any jobs yet.</p>';
-                    return;
-               }
-
-                 myPosts.forEach(post => {
-                    const card = `
-                     <div class="card" style="border-left: 5px solid #00A5EC;">
-                         <span class="type">${post.type}</span>
-                         <span style="font-size:0.8rem; color:red; float:right;">
-                             Expires: ${new Date(post.deadline).toLocaleDateString()}
-                         </span>
-                         <h3>${post.title}</h3>
-                         <p style="font-size:0.9rem; color:#666;">${post.description.substring(0,50)}...</p>
-                    
-                         <button class="apply-btn" 
-                             style="background:white; color:red; border:1px solid red; margin-top:10px;"
-                             onclick="deletePost('${post._id}')">
-                             🗑 Delete Post
-                         </button>
-                     </div>
-               `;
-                grid.innerHTML += card;
-             });
-             } catch (err) {
-               console.error(err);
-          }
-}
-
-// 4. Delete Function
-async function deletePost(id) {
-    if(!confirm("Are you sure you want to delete this job?")) return;
-
-    try {
-        const res = await fetch(`http://localhost:5000/api/opportunities/${id}`, {
-            method: 'DELETE'
-        });
-
-        if(res.ok) {
-            alert("Post deleted!");
-            loadMyPosts(); // Refresh the list
-        } else {
-            alert("Error deleting.");
-        }
-    } catch (err) {
-        alert("Server error.");
-    }
-}
-
-// CALL THIS FUNCTION AT STARTUP (Alongside loadRecommendations)
-loadMyPosts();
-
-                // Update the stats number
                 document.getElementById('match-count').innerText = matchCount;
 
                 if (matchCount === 0) {
@@ -198,6 +131,65 @@ loadMyPosts();
 
             } catch (err) {
                 console.error(err);
+            }
+        }
+
+        // --- 3. LOAD MY POSTS ---
+        async function loadMyPosts() {
+            try {
+                const email = user.email;
+                const res = await fetch(`http://localhost:5000/api/my-posts/${email}`);
+                const myPosts = await res.json();
+        
+                const grid = document.getElementById('my-posts-grid');
+                grid.innerHTML = '';
+
+                if (myPosts.length === 0) {
+                    grid.innerHTML = '<p>You haven\'t posted any jobs yet.</p>';
+                    return;
+                }
+
+                myPosts.forEach(post => {
+                    const card = `
+                        <div class="card" style="border-left: 5px solid #00A5EC;">
+                            <span class="type">${post.type}</span>
+                            <span style="font-size:0.8rem; color:red; float:right;">
+                                Expires: ${post.deadline ? new Date(post.deadline).toLocaleDateString() : 'N/A'}
+                            </span>
+                            <h3>${post.title}</h3>
+                            <p style="font-size:0.9rem; color:#666;">${post.description ? post.description.substring(0,50) : ''}...</p>
+                            
+                            <button class="apply-btn" 
+                                style="background:white; color:red; border:1px solid red; margin-top:10px;"
+                                onclick="deletePost('${post._id}')">
+                                🗑 Delete Post
+                            </button>
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // --- 4. DELETE FUNCTION ---
+        async function deletePost(id) {
+            if(!confirm("Are you sure you want to delete this job?")) return;
+
+            try {
+                const res = await fetch(`http://localhost:5000/api/opportunities/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if(res.ok) {
+                    alert("Post deleted!");
+                    loadMyPosts(); // Refresh the list
+                } else {
+                    alert("Error deleting.");
+                }
+            } catch (err) {
+                alert("Server error.");
             }
         }
 
