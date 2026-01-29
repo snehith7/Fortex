@@ -10,7 +10,7 @@
     <nav class="navbar">
         <a href="index.html" class="logo">Opportunity<span>Hub</span></a>
         <div class="nav-links">
-            <a href="dashboard.html" class="btn-login">Back to Home</a>
+            <a href="dashboard.html" class="btn-login">Back to Dashboard</a>
         </div>
     </nav>
 
@@ -47,18 +47,27 @@
     </div>
 
     <script>
-        async function handlePost(e) {
-            e.preventDefault(); // Stop page reload
+        // 1. SECURITY CHECK: Kick out if not logged in
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.email) {
+            alert("🔒 You must login to post a job!");
+            window.location.href = "login.html";
+        }
 
-            // 1. Collect Data
+        async function handlePost(e) {
+            e.preventDefault(); 
+
+            // 2. Collect Data (NOW INCLUDING EMAIL & DEADLINE)
             const formData = {
                 title: document.getElementById('title').value,
                 type: document.getElementById('type').value,
-                skillsRequired: document.getElementById('skills').value.split(',').map(s => s.trim()), // Convert "React, Node" -> ["React", "Node"]
-                description: document.getElementById('desc').value
+                skillsRequired: document.getElementById('skills').value.split(',').map(s => s.trim()), 
+                description: document.getElementById('desc').value,
+                deadline: document.getElementById('deadline').value, // <--- Added Deadline
+                postedBy: user.email // <--- CRITICAL: Links job to YOU
             };
 
-            // 2. Send to Backend
+            // 3. Send to Backend
             try {
                 const res = await fetch('http://localhost:5000/api/opportunities', {
                     method: 'POST',
@@ -68,9 +77,10 @@
 
                 if (res.ok) {
                     alert("✅ Opportunity Posted Successfully!");
-                    window.location.href = "index.html"; // Go back to home to see it
+                    window.location.href = "dashboard.html"; // Go back to Dashboard to see it
                 } else {
-                    alert("Error posting data.");
+                    const data = await res.json();
+                    alert("Error: " + data.error);
                 }
             } catch (err) {
                 console.error(err);

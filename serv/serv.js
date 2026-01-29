@@ -27,31 +27,51 @@ const OpportunitySchema = new mongoose.Schema({
   skillsRequired: [String],
   description: String,
   postedBy: String, 
-  deadline: Date, // <--- NEW: Deadline Field
+  deadline: Date, 
   createdAt: { type: Date, default: Date.now }
 });
 const Opportunity = mongoose.model('Opportunity', OpportunitySchema);
 
 // --- ROUTES ---
 
-// 1. GET Opportunities (With Auto-Delete for Expired Jobs)
+// 1. GET ALL OPPORTUNITIES (For Dashboard Recommendations)
+// Includes Auto-Delete Logic
 app.get('/api/opportunities', async (req, res) => {
   try {
-    // --- AUTO-DELETE LOGIC ---
-    // Delete any job where deadline is LESS than (<) Right Now
+    // Auto-Delete Expired Jobs
     await Opportunity.deleteMany({ deadline: { $lt: new Date() } });
 
-    const { skill } = req.query;
-    const query = skill ? { skillsRequired: { $regex: skill, $options: 'i' } } : {};
-    
-    const opportunities = await Opportunity.find(query);
+    const opportunities = await Opportunity.find();
     res.json(opportunities);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 2. POST Opportunity (With Deadline)
+// 2. GET MY POSTS (For "Manage My Posts" Section)
+// Includes Auto-Delete Logic & Debugging
+app.get('/api/my-posts/:email', async (req, res) => {
+  try {
+    const userEmail = req.params.email;
+    console.log(`🔍 Checking posts for: ${userEmail}`);
+
+    // Auto-Delete here too, just in case
+    const deleteResult = await Opportunity.deleteMany({ deadline: { $lt: new Date() } });
+    if (deleteResult.deletedCount > 0) {
+        console.log(`🗑️ Auto-Deleted ${deleteResult.deletedCount} expired jobs.`);
+    }
+
+    const myPosts = await Opportunity.find({ postedBy: userEmail });
+    console.log(`✅ Found ${myPosts.length} posts.`);
+    res.json(myPosts);
+
+  } catch (err) {
+    console.error("❌ Error fetching posts:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. POST OPPORTUNITY
 app.post('/api/opportunities', async (req, res) => {
   try {
     const newOpp = new Opportunity({
@@ -60,17 +80,18 @@ app.post('/api/opportunities', async (req, res) => {
       skillsRequired: req.body.skillsRequired,
       description: req.body.description,
       postedBy: req.body.postedBy,
-      deadline: req.body.deadline, // <--- SAVE DEADLINE
+      deadline: req.body.deadline,
       createdAt: new Date()
     });
     await newOpp.save();
+    console.log("✅ New Job Posted by:", req.body.postedBy);
     res.json(newOpp);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 3. DELETE Opportunity (User deleting their own post)
+// 4. DELETE OPPORTUNITY
 app.delete('/api/opportunities/:id', async (req, res) => {
   try {
     await Opportunity.findByIdAndDelete(req.params.id);
@@ -80,21 +101,8 @@ app.delete('/api/opportunities/:id', async (req, res) => {
   }
 });
 
-// 4. GET MY POSTS (For Dashboard)
-app.get('/api/my-posts/:email', async (req, res) => {
-  try {
-    const myPosts = await Opportunity.find({ postedBy: req.params.email });
-    res.json(myPosts);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// User Auth Routes
+// --- AUTH ROUTES ---
 app.post('/api/register', async (req, res) => {
-  /* ... (Keep your existing Register logic here) ... */
-    // For brevity, I'm assuming you kept the logic from the previous step.
-    // If you need me to paste the full register/login code again, let me know.
     const { name, email, password, skills } = req.body; 
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ error: "Email exists" });
@@ -104,7 +112,6 @@ app.post('/api/register', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-  /* ... (Keep your existing Login logic here) ... */
     const { email, password } = req.body;
     const user = await User.findOne({ email, password });
     if (user) res.json({ message: "Success", user });
