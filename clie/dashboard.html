@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Dashboard - OpportunityHub</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Dashboard specific styles */
+        .dash-header { background: white; padding: 30px; border-bottom: 1px solid #ddd; margin-bottom: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; text-align: center; }
+        .stat-number { font-size: 2rem; font-weight: bold; color: var(--primary); display: block; margin-bottom: 5px; }
+        .stat-label { color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="logo">Opportunity<span>Hub</span></a>
+        <div class="nav-links">
+             <a href="post.html" class="btn-login" style="border:none;">+ Post Job</a> <a href="index.html" class="btn-login" style="border:none;">Browse All Jobs</a>
+            <button onclick="logout()" class="btn-login" style="cursor:pointer; color:red; border-color:red;">Logout</button>
+        </div>
+    </nav>
+
+    <div class="dash-header">
+        <div class="container" style="margin:0 auto;">
+            <h1 id="user-name">Welcome back!</h1>
+            <p id="user-email" style="color: #666;">...</p>
+            <div style="margin-top: 15px;">
+                <span style="font-weight: 600; margin-right: 10px;">Your Skills:</span>
+                <span id="user-skills" class="tag" style="background: #e0f2fe; color: #0284c7;">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number" id="match-count">0</span>
+                <span class="stat-label">Jobs Matching Your Skills</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">3</span>
+                <span class="stat-label">Applications Sent</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">12</span>
+                <span class="stat-label">Profile Views</span>
+            </div>
+        </div>
+
+        <h2>⚡ Recommended For You</h2>
+        <p style="color:#666; margin-bottom:20px;">Based on your skills</p>
+
+        <div style="margin-top: 50px; border-top: 1px solid #ddd; paddingTop: 30px;">
+        <h2>📂 Manage My Posts</h2>
+        <p style="color:#666;">Jobs you have posted. Click delete to remove them.</p>
+    
+    <div id="my-posts-grid" class="grid">
+        <p>Loading your posts...</p>
+    </div>
+</div>
+        
+        <div id="rec-grid" class="grid">
+            <p>Loading recommendations...</p>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. Check Login & Load User Data
+        const user = JSON.parse(localStorage.getItem('user'));
+
+        if (!user) {
+            alert("Please login first!");
+            window.location.href = "login.html";
+        } else {
+            // Fill Profile Info
+            document.getElementById('user-name').innerText = `Welcome back, ${user.name}!`;
+            document.getElementById('user-email').innerText = user.email;
+            
+            // Handle Skills (Convert string to array if needed)
+            // If user has no skills, use a default for demo
+            const userSkillsString = user.skills || "React, Node"; 
+            document.getElementById('user-skills').innerText = userSkillsString;
+            
+            // Convert "React, Node" -> ["React", "Node"] for matching
+            const userSkillsArray = userSkillsString.split(',').map(s => s.trim());
+
+            // 2. Load Recommended Jobs
+            loadRecommendations(userSkillsArray);
+        }
+
+        async function loadRecommendations(mySkills) {
+            try {
+                const res = await fetch('http://localhost:5000/api/opportunities');
+                const allEvents = await res.json();
+                const grid = document.getElementById('rec-grid');
+                grid.innerHTML = '';
+
+                let matchCount = 0;
+
+                allEvents.forEach(event => {
+                    // Calculate Match
+                    const eventSkills = event.skillsRequired || [];
+                    const intersection = eventSkills.filter(s => mySkills.some(ms => ms.toLowerCase() === s.toLowerCase()));
+                    const matchScore = Math.round((intersection.length / eventSkills.length) * 100);
+
+                    // Only show if match score > 0 (or show all sorted by match)
+                    if (matchScore > 0) {
+                        matchCount++;
+                        const card = `
+                            <div class="card">
+                                <span class="type">${event.type}</span>
+                                <span class="badge">⚡ ${matchScore}% Match</span>
+                                <h3>${event.title}</h3>
+                                <div class="tags">
+                                    ${eventSkills.slice(0,3).map(s => `<span class="tag">${s}</span>`).join('')}
+                                </div>
+                                <button class="apply-btn" onclick="window.location.href='details.html'">View Details</button>
+                            </div>
+                        `;
+                        grid.innerHTML += card;
+                    }
+                });
+                // Add this inside the <script> tag in dashboard.html
+
+             // 3. Load "My Posted Jobs"
+            async function loadMyPosts() {
+              try {
+                 const email = user.email; // Get logged in user's email
+                 const res = await fetch(`http://localhost:5000/api/my-posts/${email}`);
+                 const myPosts = await res.json();
+        
+                 const grid = document.getElementById('my-posts-grid');
+                 grid.innerHTML = '';
+
+                 if (myPosts.length === 0) {
+                    grid.innerHTML = '<p>You haven\'t posted any jobs yet.</p>';
+                    return;
+               }
+
+                 myPosts.forEach(post => {
+                    const card = `
+                     <div class="card" style="border-left: 5px solid #00A5EC;">
+                         <span class="type">${post.type}</span>
+                         <span style="font-size:0.8rem; color:red; float:right;">
+                             Expires: ${new Date(post.deadline).toLocaleDateString()}
+                         </span>
+                         <h3>${post.title}</h3>
+                         <p style="font-size:0.9rem; color:#666;">${post.description.substring(0,50)}...</p>
+                    
+                         <button class="apply-btn" 
+                             style="background:white; color:red; border:1px solid red; margin-top:10px;"
+                             onclick="deletePost('${post._id}')">
+                             🗑 Delete Post
+                         </button>
+                     </div>
+               `;
+                grid.innerHTML += card;
+             });
+             } catch (err) {
+               console.error(err);
+          }
+}
+
+// 4. Delete Function
+async function deletePost(id) {
+    if(!confirm("Are you sure you want to delete this job?")) return;
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/opportunities/${id}`, {
+            method: 'DELETE'
+        });
+
+        if(res.ok) {
+            alert("Post deleted!");
+            loadMyPosts(); // Refresh the list
+        } else {
+            alert("Error deleting.");
+        }
+    } catch (err) {
+        alert("Server error.");
+    }
+}
+
+// CALL THIS FUNCTION AT STARTUP (Alongside loadRecommendations)
+loadMyPosts();
+
+                // Update the stats number
+                document.getElementById('match-count').innerText = matchCount;
+
+                if (matchCount === 0) {
+                    grid.innerHTML = '<p>No matching jobs found. Try adding more skills!</p>';
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = "index.html";
+        }
+    </script>
+</body>
+</html>

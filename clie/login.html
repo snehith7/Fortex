@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - OpportunityHub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Opportunity<span>Hub</span></a>
+    </nav>
+
+    <div class="auth-box">
+        <h2>Welcome back</h2>
+        <input type="email" class="auth-input" placeholder="Email">
+        <input type="password" class="auth-input" placeholder="Password">
+        <button class="btn-register" style="width: 100%; margin-top: 10px; cursor: pointer;" onclick="handleLogin()">Login</button>
+        <p style="margin-top: 15px; font-size: 0.9rem;">
+            Don't have an account? <a href="register.html" style="color: var(--primary);">Sign up</a>
+        </p>
+    </div>
+
+    <script>
+        async function handleLogin() {
+            // Get values from inputs (Add IDs to your inputs if they are missing!)
+            // Make sure your HTML inputs look like: <input id="email" ...> and <input id="password" ...>
+            const email = document.querySelector('input[type="email"]').value;
+            const password = document.querySelector('input[type="password"]').value;
+
+            try {
+                const response = await fetch('http://localhost:5000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert("✅ Welcome back, " + data.user.name + "!");
+                    // Optional: Save user info so we remember them
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = "dashboard.html";
+                } else {
+                    alert("❌ Login Failed: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Server error.");
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - OpportunityHub</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Extra styles for the table */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: var(--primary); color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="logo">Opportunity<span>Hub</span></a>
+        <div class="nav-links">
+            <span style="font-weight: bold; color: red;">🔒 ADMIN MODE</span>
+            <a href="index.html" class="btn-login">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2>Registered Users Database</h2>
+        <p>Live view of all users registered in MongoDB.</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Password (Demo View)</th>
+                    <th>Skills</th>
+                </tr>
+            </thead>
+            <tbody id="user-table">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function fetchUsers() {
+            try {
+                const res = await fetch('http://localhost:5000/api/users');
+                const users = await res.json();
+                
+                const table = document.getElementById('user-table');
+                table.innerHTML = ''; // Clear loading text
+
+                users.forEach(user => {
+                    const row = `
+                        <tr>
+                            <td>${user.name || 'N/A'}</td>
+                            <td>${user.email}</td>
+                            <td>${user.password}</td>
+                            <td>${user.skills || 'None'}</td>
+                        </tr>
+                    `;
+                    table.innerHTML += row;
+                });
+            } catch (err) {
+                console.error(err);
+                alert("Error fetching users. Is server running?");
+            }
+        }
+
+        fetchUsers();
+    </script>
+</body>
+</html>

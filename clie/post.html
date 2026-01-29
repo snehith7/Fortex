@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Post Opportunity - OpportunityHub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="logo">Opportunity<span>Hub</span></a>
+        <div class="nav-links">
+            <a href="index.html" class="btn-login">Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="auth-box" style="max-width: 600px;">
+        <h2>Post a New Opportunity</h2>
+        <p style="margin-bottom: 20px; color: #666;">Recruit top talent for your company.</p>
+
+        <form onsubmit="handlePost(event)">
+            
+            <label style="display:block; text-align:left; font-weight:500; margin-bottom:5px;">Title</label>
+            <input type="text" id="title" class="auth-input" placeholder="e.g. Frontend Developer" required>
+
+            <label style="display:block; text-align:left; font-weight:500; margin-bottom:5px;">Type</label>
+            <select id="type" class="auth-input" style="background:white;">
+                <option value="Internship">Internship</option>
+                <option value="Job">Full-time Job</option>
+                <option value="Hackathon">Hackathon</option>
+                <option value="Workshop">Workshop</option>
+            </select>
+
+            <label style="display:block; text-align:left; font-weight:500; margin-bottom:5px;">Skills Required (comma separated)</label>
+            <input type="text" id="skills" class="auth-input" placeholder="e.g. React, Node, Python">
+
+            <label style="display:block; text-align:left; font-weight:500; margin-bottom:5px;">Application Deadline</label>
+            <input type="date" id="deadline" class="auth-input" required>
+
+            <label style="display:block; text-align:left; font-weight:500; margin-bottom:5px;">Description</label>
+            <textarea id="desc" class="auth-input" rows="5" placeholder="Describe the role..." style="font-family: inherit;"></textarea>
+
+            <button type="submit" class="btn-register" style="width: 100%; margin-top: 15px; cursor: pointer;">
+                🚀 Post Opportunity
+            </button>
+        </form>
+    </div>
+
+    <script>
+        async function handlePost(e) {
+            e.preventDefault(); // Stop page reload
+
+            // 1. Collect Data
+            const formData = {
+                title: document.getElementById('title').value,
+                type: document.getElementById('type').value,
+                skillsRequired: document.getElementById('skills').value.split(',').map(s => s.trim()), // Convert "React, Node" -> ["React", "Node"]
+                description: document.getElementById('desc').value
+            };
+
+            // 2. Send to Backend
+            try {
+                const res = await fetch('http://localhost:5000/api/opportunities', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (res.ok) {
+                    alert("✅ Opportunity Posted Successfully!");
+                    window.location.href = "index.html"; // Go back to home to see it
+                } else {
+                    alert("Error posting data.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Server error. Is the backend running?");
+            }
+        }
+    </script>
+</body>
+</html>

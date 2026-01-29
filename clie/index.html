@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpportunityHub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+   <nav class="navbar">
+       <a href="index.html" class="logo">Opportunity<span>Hub</span></a>
+       <div class="nav-links">
+          <a href="login.html" class="btn-login">Login</a>
+           <a href="register.html" class="btn-register">Register</a>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>Find your dream start</h1>
+        <p>Internships, Hackathons, and Jobs matching your skills.</p>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Enter skills (e.g. React, Python)...">
+            <button id="search-btn">Search</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 style="margin-bottom: 20px;">Recommended Opportunities</h2>
+        <div id="opp-grid" class="grid">
+            <p>Loading opportunities...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <div id="event-modal" class="modal-overlay">
+        <div class="modal-box">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            
+            <h2 id="modal-title" style="margin-top: 0;">Event Title</h2>
+            
+            <div class="modal-meta">
+                <span id="modal-type" class="type">Internship</span>
+                <span id="modal-match" class="badge">90% Match</span>
+            </div>
+
+            <p style="font-weight: bold; margin-bottom: 5px;">Description:</p>
+            <p id="modal-desc" style="color: #555; line-height: 1.5;">...</p>
+
+            <p style="font-weight: bold; margin-bottom: 5px;">Skills Required:</p>
+            <div id="modal-skills" class="tags"></div>
+
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
+                <button class="btn-register" style="width: 100%; cursor: pointer;" onclick="confirmApply()">
+                    Confirm Application
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

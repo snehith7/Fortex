@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - OpportunityHub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="logo">Opportunity<span>Hub</span></a>
+        <div class="nav-links">
+            <a href="login.html" class="btn-login">Login</a>
+        </div>
+    </nav>
+
+    <div class="auth-box">
+        <h2>Create an Account</h2>
+        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+            Join thousands of students finding their dream career.
+        </p>
+
+        <form onsubmit="handleRegister(event)">
+            <input type="text" id="reg-name" class="auth-input" placeholder="Full Name" required>
+            
+            <input type="email" id="reg-email" class="auth-input" placeholder="Email Address" required>
+            
+            <input type="password" id="reg-pass" class="auth-input" placeholder="Password (6+ characters)" required>
+
+            <input type="text" id="reg-skills" class="auth-input" placeholder="Your Skills (e.g. React, Node, Java)">
+
+            <button type="submit" class="btn-register" style="width: 100%; margin-top: 10px; cursor: pointer;">
+                Sign Up
+            </button>
+        </form>
+
+        <p style="margin-top: 20px; font-size: 0.9rem;">
+            Already registered? <a href="login.html" style="color: var(--primary); font-weight: 500;">Login here</a>
+        </p>
+    </div>
+
+    <script>
+        async function handleRegister(e) {
+            e.preventDefault(); 
+            
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-pass').value;
+
+            try {
+                // Send data to Backend
+                const response = await fetch('http://localhost:5000/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert("✅ Registration Successful! Please Login.");
+                    window.location.href = "login.html";
+                } else {
+                    alert("❌ Error: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Server error. Is backend running?");
+            }
+        }
+    </script>
+</body>
+</html>
