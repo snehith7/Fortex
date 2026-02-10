@@ -7,7 +7,7 @@
     <style>
         /* Dashboard specific styles */
         .dash-header { background: white; padding: 30px; border-bottom: 1px solid #ddd; margin-bottom: 30px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
         .stat-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; text-align: center; }
         .stat-number { font-size: 2rem; font-weight: bold; color: var(--primary); display: block; margin-bottom: 5px; }
         .stat-label { color: #666; font-size: 0.9rem; }
@@ -40,14 +40,18 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <span class="stat-number" id="match-count">0</span>
-                <span class="stat-label">Jobs Matching Your Skills</span>
+                <span class="stat-label">Jobs Matching Skills</span>
             </div>
             <div class="stat-card">
-                <span class="stat-number">3</span>
+                <span class="stat-number" id="posted-count">0</span>
+                <span class="stat-label">Opportunities Posted</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="app-count">0</span>
                 <span class="stat-label">Applications Sent</span>
             </div>
             <div class="stat-card">
-                <span class="stat-number">12</span>
+                <span class="stat-number" id="view-count">0</span>
                 <span class="stat-label">Profile Views</span>
             </div>
         </div>
@@ -64,6 +68,14 @@
             <div id="my-posts-grid" class="grid">
                 <p>Loading your posts...</p>
             </div>
+        </div>
+        
+        <div style="margin-top: 50px; border-top: 2px solid #ffcccc; padding-top: 20px;">
+            <h3 style="color: #cc0000;">⚠️ Danger Zone</h3>
+            <p style="color: #666; font-size: 0.9rem;">Once you delete your account, there is no going back. All your posted jobs will also be removed.</p>
+            <button onclick="deleteAccount()" style="background-color: #ff4d4d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+                🗑 Delete My Account
+            </button>
         </div>
 
     </div>
@@ -82,15 +94,31 @@
             
             const userSkillsString = user.skills || "React, Node"; 
             document.getElementById('user-skills').innerText = userSkillsString;
-            
             const userSkillsArray = userSkillsString.split(',').map(s => s.trim());
 
-            // Load Data
+            // --- LOAD STATS ---
+            updateStats();
+
+            // --- LOAD DATA ---
             loadRecommendations(userSkillsArray);
-            loadMyPosts(); // <--- Called separately now
+            loadMyPosts();
         }
 
-        // --- 2. LOAD RECOMMENDATIONS ---
+        // --- NEW: UPDATE STATS FUNCTION ---
+        function updateStats() {
+            // 1. Applications Sent (Stored in Browser)
+            let appsSent = localStorage.getItem('appsSent') || 0;
+            document.getElementById('app-count').innerText = appsSent;
+
+            // 2. Profile Views (Simulated Growth)
+            // Starts at 12, adds 1 every time you refresh page
+            let views = localStorage.getItem('profileViews') || 0;
+            views = parseInt(views) + 1;
+            localStorage.setItem('profileViews', views);
+            document.getElementById('view-count').innerText = views;
+        }
+
+        // --- 2. LOAD RECOMMENDATIONS (With Application Tracking) ---
         async function loadRecommendations(mySkills) {
             try {
                 const res = await fetch('http://localhost:5000/api/opportunities');
@@ -101,22 +129,36 @@
                 let matchCount = 0;
 
                 allEvents.forEach(event => {
-                    // Calculate Match
+                    // Match Logic
                     const eventSkills = event.skillsRequired || [];
                     const intersection = eventSkills.filter(s => mySkills.some(ms => ms.toLowerCase() === s.toLowerCase()));
                     const matchScore = Math.round((intersection.length / eventSkills.length) * 100);
 
                     if (matchScore > 0) {
                         matchCount++;
+                        
+                        // Email Logic
+                        const subject = `Application for ${event.title}`;
+                        const body = `Hi,\n\nI am interested in the ${event.title} role. I have experience in ${intersection.join(', ')}.\n\nBest,\n${user.name}`;
+                        const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
                         const card = `
                             <div class="card">
                                 <span class="type">${event.type}</span>
-                                <span class="badge">⚡ ${matchScore}% Match</span>
+                                <span class="badge" style="background:${matchScore === 100 ? '#22c55e' : '#eab308'}; color:white;">
+                                    ${matchScore}% Match
+                                </span>
                                 <h3>${event.title}</h3>
                                 <div class="tags">
                                     ${eventSkills.slice(0,3).map(s => `<span class="tag">${s}</span>`).join('')}
                                 </div>
-                                <button class="apply-btn" onclick="window.location.href='details.html'">View Details</button>
+                                
+                                <a href="${mailtoLink}" 
+                                   onclick="incrementApps()" 
+                                   class="apply-btn" 
+                                   style="text-align:center; display:block; text-decoration:none;">
+                                   🚀 Draft Application
+                                </a>
                             </div>
                         `;
                         grid.innerHTML += card;
@@ -134,13 +176,24 @@
             }
         }
 
-        // --- 3. LOAD MY POSTS ---
+        // --- NEW: INCREMENT APPLICATIONS ---
+        function incrementApps() {
+            let appsSent = localStorage.getItem('appsSent') || 0;
+            appsSent = parseInt(appsSent) + 1;
+            localStorage.setItem('appsSent', appsSent);
+            document.getElementById('app-count').innerText = appsSent;
+        }
+
+        // --- 3. LOAD MY POSTS (With Count Update) ---
         async function loadMyPosts() {
             try {
                 const email = user.email;
                 const res = await fetch(`http://localhost:5000/api/my-posts/${email}`);
                 const myPosts = await res.json();
         
+                // UPDATE STAT: Opportunities Posted
+                document.getElementById('posted-count').innerText = myPosts.length;
+
                 const grid = document.getElementById('my-posts-grid');
                 grid.innerHTML = '';
 
@@ -184,7 +237,7 @@
 
                 if(res.ok) {
                     alert("Post deleted!");
-                    loadMyPosts(); // Refresh the list
+                    loadMyPosts(); // Refresh list & update stats
                 } else {
                     alert("Error deleting.");
                 }

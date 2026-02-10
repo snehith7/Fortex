@@ -82,5 +82,40 @@ document.getElementById('search-btn').addEventListener('click', () => {
     fetchOpportunities(query);
 });
 
+// --- 5. DELETE ACCOUNT FUNCTION ---
+        async function deleteAccount() {
+            // 1. Double Confirmation
+            const confirm1 = confirm("⚠️ Are you sure you want to delete your account?");
+            if (!confirm1) return;
+
+            const confirm2 = confirm("🔴 This is permanent. Are you absolutely sure?");
+            if (!confirm2) return;
+
+            try {
+                // 2. Send Delete Request
+                // Note: user._id must be present in the user object saved in localStorage
+                if (!user._id) {
+                    alert("Error: User ID missing. Please login again.");
+                    logout();
+                    return;
+                }
+
+                const res = await fetch(`http://localhost:5000/api/users/${user._id}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    alert("Your account has been deleted. Goodbye! 👋");
+                    logout(); // Clears localStorage and redirects
+                } else {
+                    const data = await res.json();
+                    alert("Error: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Server error. Could not delete account.");
+            }
+        }
+
 // Load all on start
 fetchOpportunities();

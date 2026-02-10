@@ -10,6 +10,16 @@
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
         th { background-color: var(--primary); color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
+        
+        .btn-delete {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .btn-delete:hover { background-color: #cc0000; }
     </style>
 </head>
 <body>
@@ -33,7 +43,7 @@
                     <th>Email</th>
                     <th>Password (Demo View)</th>
                     <th>Skills</th>
-                </tr>
+                    <th>Action</th> </tr>
             </thead>
             <tbody id="user-table">
                 </tbody>
@@ -47,7 +57,7 @@
                 const users = await res.json();
                 
                 const table = document.getElementById('user-table');
-                table.innerHTML = ''; // Clear loading text
+                table.innerHTML = ''; 
 
                 users.forEach(user => {
                     const row = `
@@ -56,6 +66,11 @@
                             <td>${user.email}</td>
                             <td>${user.password}</td>
                             <td>${user.skills || 'None'}</td>
+                            <td>
+                                <button class="btn-delete" onclick="deleteUser('${user._id}')">
+                                    🗑 Delete
+                                </button>
+                            </td>
                         </tr>
                     `;
                     table.innerHTML += row;
@@ -63,6 +78,29 @@
             } catch (err) {
                 console.error(err);
                 alert("Error fetching users. Is server running?");
+            }
+        }
+
+        // --- NEW: DELETE USER FUNCTION ---
+        async function deleteUser(id) {
+            // 1. Confirm before deleting
+            if(!confirm("⚠️ Are you sure you want to delete this user? This cannot be undone.")) return;
+
+            try {
+                // 2. Send Delete Request
+                const res = await fetch(`http://localhost:5000/api/users/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    alert("User deleted successfully!");
+                    fetchUsers(); // Refresh the table
+                } else {
+                    alert("Failed to delete user.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Server error.");
             }
         }
 

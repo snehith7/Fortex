@@ -2,9 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - OpportunityHub</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Small spinner for loading state */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
 
@@ -17,56 +30,139 @@
 
     <div class="auth-box">
         <h2>Create an Account</h2>
-        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
-            Join thousands of students finding their dream career.
-        </p>
+        <p style="margin-bottom: 20px; color: #666;">Start your career journey today.</p>
 
         <form onsubmit="handleRegister(event)">
-            <input type="text" id="reg-name" class="auth-input" placeholder="Full Name" required>
             
-            <input type="email" id="reg-email" class="auth-input" placeholder="Email Address" required>
+            <input type="text" id="name" class="auth-input" placeholder="Full Name" required>
             
-            <input type="password" id="reg-pass" class="auth-input" placeholder="Password (6+ characters)" required>
+            <div style="display: flex; gap: 10px;">
+                <input type="email" id="email" class="auth-input" placeholder="Email Address" required style="flex: 1;">
+                <button type="button" onclick="sendVerification()" id="btn-verify" class="btn-login" style="padding: 10px; font-size: 0.8rem;">
+                    Verify
+                </button>
+            </div>
 
-            <input type="text" id="reg-skills" class="auth-input" placeholder="Your Skills (e.g. React, Node, Java)">
+            <div id="otp-section" style="display: none; margin-bottom: 15px;">
+                <p style="font-size: 0.8rem; color: green;">Code sent! Check your email.</p>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="otp" class="auth-input" placeholder="Enter 6-digit Code" style="flex: 1;">
+                    <button type="button" onclick="checkCode()" class="btn-login" style="background: #22c55e; border: none; color: white;">Confirm</button>
+                </div>
+            </div>
 
-            <button type="submit" class="btn-register" style="width: 100%; margin-top: 10px; cursor: pointer;">
-                Sign Up
+            <input type="password" id="password" class="auth-input" placeholder="Password" required>
+            <input type="text" id="skills" class="auth-input" placeholder="Skills (e.g. Java, Python)">
+
+            <button type="submit" id="btn-register" class="btn-register" disabled style="opacity: 0.5; cursor: not-allowed;">
+                Create Account
             </button>
         </form>
 
-        <p style="margin-top: 20px; font-size: 0.9rem;">
-            Already registered? <a href="login.html" style="color: var(--primary); font-weight: 500;">Login here</a>
+        <p class="auth-footer">
+            Already have an account? <a href="login.html">Login</a>
         </p>
     </div>
 
     <script>
-        async function handleRegister(e) {
-            e.preventDefault(); 
-            
-            const name = document.getElementById('reg-name').value;
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-pass').value;
+        let isEmailVerified = false;
+
+        async function sendVerification() {
+            const email = document.getElementById('email').value;
+            const btn = document.getElementById('btn-verify');
+
+            if (!email) return alert("Please enter an email first.");
+
+            btn.innerText = "Sending...";
+            btn.disabled = true;
 
             try {
-                // Send data to Backend
-                const response = await fetch('http://localhost:5000/api/register', {
+                const res = await fetch('http://localhost:5000/api/send-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
+                    body: JSON.stringify({ email })
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    alert("✅ Registration Successful! Please Login.");
-                    window.location.href = "login.html";
+                if (res.ok) {
+                    document.getElementById('otp-section').style.display = 'block';
+                    btn.innerText = "Sent ✅";
                 } else {
-                    alert("❌ Error: " + data.error);
+                    alert("Error sending email. Check server console.");
+                    btn.innerText = "Verify";
+                    btn.disabled = false;
                 }
             } catch (err) {
                 console.error(err);
-                alert("Server error. Is backend running?");
+                alert("Server error.");
+            }
+        }
+
+        async function checkCode() {
+            const email = document.getElementById('email').value;
+            const code = document.getElementById('otp').value;
+
+            try {
+                const res = await fetch('http://localhost:5000/api/verify-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, code })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert("Email Verified Successfully! 🎉");
+                    isEmailVerified = true;
+                    
+                    // Enable Register Button
+                    const regBtn = document.getElementById('btn-register');
+                    regBtn.disabled = false;
+                    regBtn.style.opacity = "1";
+                    regBtn.style.cursor = "pointer";
+                    
+                    // Hide OTP section
+                    document.getElementById('otp-section').style.display = 'none';
+                    document.getElementById('btn-verify').innerText = "Verified 🔒";
+                    document.getElementById('email').disabled = true; // Lock email
+                } else {
+                    alert("Invalid Code. Try again.");
+                }
+            } catch (err) {
+                alert("Server error.");
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+
+            if (!isEmailVerified) {
+                alert("Please verify your email first!");
+                return;
+            }
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const skills = document.getElementById('skills').value;
+
+            try {
+                const res = await fetch('http://localhost:5000/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, skills })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert("Registration Successful!");
+                    window.location.href = "login.html";
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error connecting to server");
             }
         }
     </script>
